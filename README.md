@@ -60,13 +60,13 @@
 
 ![게임클리어.gif](./InGameGif/게임클리어.gif)
 
-#### 게임 서비스 플로우는 [여기](https://lab.ssafy.com/s09-final/S09P31C101/-/blob/develop/GAMESERVICE_README.md)에서!
+#### 게임 서비스 플로우는 [여기](https://github.com/StrongGwak/LostInFrost/blob/main/GAMESERVICE_README.md)에서!
 
-#### 게임 플레잉 플로우는 [여기](https://lab.ssafy.com/s09-final/S09P31C101/-/blob/develop/GAMEPLAYING_README.md)에서!
+#### 게임 플레잉 플로우는 [여기](https://github.com/StrongGwak/LostInFrost/blob/main/GAMEPLAYING_README.md)에서!
 
 #### 게임 (빌드)실행 파일은 [여기](https://drive.google.com/file/d/1iaUEOmaEvWR93LeBZ2TKRu2au-JNrJv_/view)에서!
 
-#### 웹 관련 README는 [여기](https://lab.ssafy.com/s09-final/S09P31C101/-/blob/develop/WEB.md)
+#### 웹 관련 README는 [여기](https://github.com/StrongGwak/LostInFrost/blob/main/WEB.md)
 
 ---
 
