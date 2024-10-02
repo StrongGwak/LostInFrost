@@ -3,6 +3,9 @@
 - 평범한 생존게임은 가라! 다양한 상호작용과 랜덤 카드 선택을 통한 효과를 챙겨 30분을 버텨라!
 
 ## 소개 및 시연 영상
+[![Video Label](http://img.youtube.com/vi/jYyTf2IaZ80/0.jpg)](https://youtu.be/jYyTf2IaZ80)
+
+https://youtu.be/jYyTf2IaZ80?si=cC8iMLbVjlFIKKg0
 
 ## 개요
 
