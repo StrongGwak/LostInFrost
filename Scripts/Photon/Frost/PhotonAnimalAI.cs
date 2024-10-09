@@ -62,10 +62,6 @@ public class PhotonAnimalAI : MonoBehaviourPunCallbacks
     private float lastStateChangeTime = 0f;
     private float stateChangeCooldown = 0.3f; // 쿨다운 시간, 예를 들어 1초
     private bool firstState = true;
-
-    // 수민
-    private IEnumerator currentCoroutine;
-
     private PhotonView pv;
     
     void Awake()
@@ -84,17 +80,18 @@ public class PhotonAnimalAI : MonoBehaviourPunCallbacks
     {
         if (pv.IsMine)
         {
+            pv.RPC("StopAnim", RpcTarget.All);
+        }
+        
+        if (pv.IsMine)
+        {
             // 동물이 활성화될 때 돔울의 상태를 "Idle"로 설정
-            //firstState = true;
             pv.RPC("RPCSetState", RpcTarget.All, AnimalState.Idle.ToString());
         }
         hp = animalData.animalHp;
         isDead = false;
         isPool = false;
-        if (pv.IsMine)
-        {
-            pv.RPC("StopAnim", RpcTarget.All);
-        }
+        
         gameObject.GetComponent<Rigidbody>().isKinematic = false;
     }
 
@@ -103,23 +100,13 @@ public class PhotonAnimalAI : MonoBehaviourPunCallbacks
         // 동물이 비활성화될 때 현재 재생중인 상태를 종료하고, 상태를 "None"으로 설정
         StopCoroutine(animalState.ToString());
         animalState = AnimalState.None;
-        //firstState = true;
     }
-
-    //private void Update()
-    //{
-    //    if (isDead && isPool && gameObject.activeInHierarchy)
-    //    {
-    //        PhotonAnimalManager.Instance.ReturnObject(gameObject);
-    //    }
-    //}
 
     public void ChangeState(AnimalState newState)
     {
         // 현재 재생중인 상태와 바꾸려는 상태가 같으면 바꿀 필요가 없기 때문에 return
-        if (animalState == newState )
+        if (animalState == newState)
         {
-            //firstState = false;
             return;
         }
 
@@ -129,37 +116,6 @@ public class PhotonAnimalAI : MonoBehaviourPunCallbacks
         animalState = newState;
         // 새로운 상태 재생
         StartCoroutine(animalState.ToString());
-
-        // 수민
-        //if (currentCoroutine != null)
-        //{
-        //    StopCoroutine(currentCoroutine);
-        //}
-        //StopCoroutine(animalState.ToString());
-        //animalState = newState;
-        //// 새로운 상태 재생
-        //currentCoroutine = GetCoroutineForState(newState);
-        //StartCoroutine(currentCoroutine);
-    }
-
-    private IEnumerator GetCoroutineForState(AnimalState state)
-    {
-        switch (state)
-        {
-            case AnimalState.Idle:
-                return Idle();
-            case AnimalState.Wander:
-                return Wander();
-            case AnimalState.Chase:
-                return Chase();
-            case AnimalState.RunAway:
-                return RunAway();
-            case AnimalState.Attack:
-                return Attack();
-            case AnimalState.Dead:
-                return Dead();
-            default: return null;
-        }
     }
 
     private IEnumerator Idle()
@@ -173,16 +129,6 @@ public class PhotonAnimalAI : MonoBehaviourPunCallbacks
 
         while (true)
         {
-            if (pv.IsMine)
-            {
-                // 자신의 죽음 검사
-                DeadCheck();
-            }
-            if (isDead)
-            {
-                break;
-            }
-            
             // "Idle" 상태일 때 하는 행동
             // 선제공격 동물일 때 타겟과의 거리에 따라 행동 선택 (Wander, Chase, Attack)
             if (animalData.isFirstAttack)
@@ -203,25 +149,15 @@ public class PhotonAnimalAI : MonoBehaviourPunCallbacks
         if (pv.IsMine)
         {
             pv.RPC("StopAnim", RpcTarget.All);
-            DeadCheck();
-        }
-        if (isDead)
-        {
-            yield break;
-        }
-        // Idle 상태일때 10% 확률로 동물마다 가진 특별한 액션을 취한다.
-        int actionChance = Random.Range(1, 10);
-        if (actionChance == 4)
-        {
-            if (pv.IsMine)
-            {
+            // Idle 상태일때 10% 확률로 동물마다 가진 특별한 액션을 취한다.
+            int actionChance = Random.Range(1, 10);
+            if (actionChance == 4) {
                 pv.RPC("RPCSpecialAction", RpcTarget.All, true);
                 yield return new WaitForSeconds(actionChance);
                 pv.RPC("RPCSpecialAction", RpcTarget.All, false);
             }
-            
         }
-
+        
         // 1~4초 시간 대기
         int changeTime = Random.Range(1, 5);
         
@@ -239,81 +175,58 @@ public class PhotonAnimalAI : MonoBehaviourPunCallbacks
         if (pv.IsMine)
         {
             pv.RPC("StopAnim", RpcTarget.All);
+            pv.RPC("SetAnimationTrue", RpcTarget.All, "isWalking");
+            float currentTime = 0;
+            float maxTime = 4;
         }
-        pv.RPC("SetAnimationTrue", RpcTarget.All, "isWalking");
-        //animator.SetBool("isWalking", true);
-        float currentTime = 0;
-        float maxTime = 4;
+        
+        // 이동 속도 설정
+        nav.speed = animalData.animalWalkSpeed;
         
         if (pv.IsMine)
         {
             // 쫒던 중 배회 상태가 되면 주변 탐색
             Aware();
-        }
-        
-        
-        // 이동 속도 설정
-        nav.speed = animalData.animalWalkSpeed;
-        
-        // 목표 위치 설정
-        if (pv.IsMine)
-        {
+            
+            // 목표 위치 설정
             CalculateWanderPosition();
-        }
-        
-        
-        // 목표 위치로 회전
-        Vector3 to = new Vector3(nav.destination.x, 0, nav.destination.z);
-        Vector3 from = new Vector3(transform.position.x, 0, transform.position.z);
-        if (pv.IsMine)
-        {
-            // 부드러운 회전을 위해 Lerp 사용
+            
+            // 목표 위치로 회전
+            Vector3 to = new Vector3(nav.destination.x, 0, nav.destination.z);
+            Vector3 from = new Vector3(transform.position.x, 0, transform.position.z);
             pv.RPC("RPCRotate", RpcTarget.All, to, from);
         }
+        
         while (true)
         {
             if (pv.IsMine)
             {
-                // 자신의 죽음 검사
-                DeadCheck();
-            }
+                currentTime += Time.deltaTime;
             
-            if (isDead)
-            {
-                break;
-            }
+                // 목표 위치에 근접하게 도달하거나 너무 오랜시간동안 배회하기 상태에 머물러 있다면
+                to = new Vector3(nav.destination.x, 0, nav.destination.z);
+                from = new Vector3(transform.position.x, 0, transform.position.z);
+                if ((to - from).sqrMagnitude < 0.01f || currentTime >= maxTime)
+                {
+                    // 상태를 "Idle"로 변경
+                    pv.RPC("RPCSetState", RpcTarget.All, AnimalState.Idle.ToString());
+                }
             
-            currentTime += Time.deltaTime;
-            
-            // 목표 위치에 근접하게 도달하거나 너무 오랜시간동안 배회하기 상태에 머물러 있다면
-            to = new Vector3(nav.destination.x, 0, nav.destination.z);
-            from = new Vector3(transform.position.x, 0, transform.position.z);
-            if (pv.IsMine && ((to - from).sqrMagnitude < 0.01f || currentTime >= maxTime))
-            {
-                // 상태를 "Idle"로 변경
-                pv.RPC("RPCSetState", RpcTarget.All, AnimalState.Idle.ToString());
-            }
-            
-            // 선제공격 동물일 때 타겟과의 거리에 따라 행동 선택 (Wander, Chase, Attack)
-            if (animalData.isFirstAttack)
-            {
-                if (pv.IsMine)
+                // 선제공격 동물일 때 타겟과의 거리에 따라 행동 선택 (Wander, Chase, Attack)
+                if (animalData.isFirstAttack)
                 {
                     // 타겟과의 거리에 따라 행동 선택 (Wander, Chase, Attack)
                     CalculateDistanceToTarget();
                 }
-            }
-            else
-            {
-                if (pv.IsMine)
+                else
                 {
                     RunawayFromTarget();
                 }
             }
-            
             yield return null;
         }
     }
+    
     [PunRPC]
     public void SetAnimationTrue(String anim)
     {
@@ -366,16 +279,6 @@ public class PhotonAnimalAI : MonoBehaviourPunCallbacks
         
         while (true)
         {
-            if (pv.IsMine)
-            {
-                // 자신의 죽음 검사
-                DeadCheck();
-            }
-            
-            if (isDead)
-            {
-                break;
-            }
             
             currentTime += Time.deltaTime;
             
@@ -518,16 +421,6 @@ public class PhotonAnimalAI : MonoBehaviourPunCallbacks
         
         while (true)
         {
-            if (pv.IsMine)
-            {
-                // 자신의 죽음 검사
-                DeadCheck();
-            }
-            
-            if (isDead)
-            {
-                break;
-            }
             // 이동 속도 설정 (Wander 시 걷기, Chase 시 달리기)
             nav.speed = animalData.animalRunSpeed;
 
@@ -626,45 +519,30 @@ public class PhotonAnimalAI : MonoBehaviourPunCallbacks
         {
             // 이동 위치 초기화
             pv.RPC("RPCStopMove", RpcTarget.All);
+            pv.RPC("SetAnimationTrue", RpcTarget.All, "isAttacking");
         }
-        pv.RPC("SetAnimationTrue", RpcTarget.All, "isAttacking");
-        //animator.SetBool("isAttacking", true);
         
         while (true)
         {
             if (pv.IsMine)
             {
-                // 자신의 죽음 검사
-                DeadCheck();
-            }
-            
-            if (isDead)
-            {
-                break;
-            }
-            
-            lastAttackTime += Time.deltaTime;
-            
-            if (pv.IsMine)
-            {
+                lastAttackTime += Time.deltaTime;
+                
                 // 공격시 대상을 바라봄
                 LookRotationToTarget();
                 // 타겟이 죽었는지 확인
                 TargetDeadCheck();
-            }
-            
-            // 공격 주기
-            if (lastAttackTime >= attackRate)
-            {
-                lastAttackTime = 0;
                 
-                if (pv.IsMine)
+                // 공격 주기
+                if (lastAttackTime >= attackRate)
                 {
+                    lastAttackTime = 0;
+                
                     // 타겟과의 거리에 따라 행동 선택 (Wander, Chase, Attack)
                     CalculateDistanceToTarget();
                 }
             }
-
+            
             yield return null;
         }
     }
@@ -699,6 +577,10 @@ public class PhotonAnimalAI : MonoBehaviourPunCallbacks
     {
         hp -= damage;
         isHit = true;
+        if (hp < 1)
+        {
+            Dead();
+        }
     }
 
     private void TargetDeadCheck()
@@ -721,7 +603,7 @@ public class PhotonAnimalAI : MonoBehaviourPunCallbacks
         }
     }
 
-    private void DeadCheck()
+    private void Dead()
     {
         // 체력이 0 이하일 때 Dead
         if (hp <= 0)
@@ -741,9 +623,7 @@ public class PhotonAnimalAI : MonoBehaviourPunCallbacks
         // 선제공격 동물이 아니라면 추격이 오래 지속될 때 끝까지 쫓아가지 않음
         if (pv.IsMine && !animalData.isFirstAttack)
         {
-            // target = null;
             pv.RPC("RPCSetTarget", RpcTarget.All, 0);
-            // targetType = TargetType.None;
             pv.RPC("RPCSetTargetType", RpcTarget.All, TargetType.None.ToString());
             return;
         }
@@ -799,7 +679,6 @@ public class PhotonAnimalAI : MonoBehaviourPunCallbacks
         // 타겟이 플레이어라면
         if (check.CompareTag("Player") && check.GetComponentInChildren<PlayerStatus>().hp>0)
         {
-            Debug.Log("여기와? 포톤애니멀AI");
             pv.RPC("RPCSetTargetType", RpcTarget.All, TargetType.Player.ToString());
             return true;
         }

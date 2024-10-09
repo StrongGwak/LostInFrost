@@ -37,7 +37,7 @@ public class PhotonAnimalManager : MonoBehaviourPunCallbacks
         {
             animalDictionary[animalData.animalName] = animalData;
             animalPoolingObjectQueueDictionary[animalData.animalName] = new Queue<GameObject>();
-        // 빈 오브젝트 생성 후 동물 카테고리로 사용 오브젝트 별로 하위에 할당
+            // 빈 오브젝트 생성 후 동물 카테고리로 사용 오브젝트 별로 하위에 할당
             if (pv.IsMine)
             {
                 pv.RPC("CreateAnimalObject", RpcTarget.All, animalData.animalName);
@@ -49,14 +49,16 @@ public class PhotonAnimalManager : MonoBehaviourPunCallbacks
     [PunRPC]
     public void CreateAnimalObject(String animalName)
     {
-        if (!pv.IsMine) return;
         AnimalData animalData = animalDictionary[animalName];
         for (int i = 0; i < animalData.animalLimit; i++)
         {
             // 오브젝트 정보 로드 후 생성
             GameObject animal = PhotonNetwork.InstantiateRoomObject("Animal/" + animalName, Vector3.zero, Quaternion.identity);
             animal.transform.SetParent(animals.transform);
-            animal.GetComponent<PhotonView>().RPC("RPCSetActive", RpcTarget.All, false);
+            if (pv.IsMine)
+            {
+                animal.GetComponent<PhotonView>().RPC("RPCSetActive", RpcTarget.All, false);
+            }
             // 큐에 오브젝트 넣음
             Instance.animalPoolingObjectQueueDictionary[animalName].Enqueue(animal);
         }
